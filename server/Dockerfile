@@ -2,7 +2,9 @@ FROM bamos/openface
 
 ADD . /src
 
-RUN cd /src; apk update; pip install -r requirements.txt
+RUN cd /src &&\
+    apt-get update &&\
+    pip install -r requirements.txt
 
 EXPOSE 5000
 

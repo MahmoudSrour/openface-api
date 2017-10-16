@@ -1,3 +1,3 @@
-echo "Start running models..."
+echo "Start running app.py..."
 
 python /src/app.py
