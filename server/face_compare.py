@@ -37,8 +37,9 @@ class FaceCompare:
         self.logger.info("Call compare method")
         d = self.getRep(rgbImg1) - self.getRep(rgbImg2)
 
-        self.logger.info("Return comapre method result, Distance:{}".format(d))
-        return  "Squared l2 distance between representations: {:0.3f}".format(np.dot(d, d))
+        distance = np.dot(d, d)
+        self.logger.info("Distance:{}".format(distance))
+        return "{:0.3f}".format(distance)
 
     def getRep(self, rgbImg):
         self.logger.info("Call getRep method")
@@ -64,6 +65,5 @@ class FaceCompare:
         rep = self.net.forward(alignedFace)
 
         self.logger.info("  + OpenFace forward pass took {} seconds.".format(time.time() - start))
-        self.logger.info("Return getRep method result, Representation: {}".format(rep))
 
         return rep
