@@ -27,7 +27,7 @@ logger.setLevel(logging.INFO)
 def healthy_check():
     logger.info('Calling healthy-check api')
     resp = {'message': 'Service up on: %s' % str(datetime.datetime.now())}
-    return jsonify(resp)
+    return jsonify(resp), 201
 
 
 @app.route('/verify', methods=['GET', 'POST'])
@@ -60,7 +60,7 @@ def verify():
     distance = face_compare.compare(img1, img2)
     logger.info("End getting verify result: {}".format(distance))
 
-    result = json.dumps({'distance': distance, 'verified': distance > 50.0})
+    result = json.dumps({'distance': distance, 'verified': distance > config.general['acceptance-compare-distance']})
     logger.info("Response result: {}".format(result))
     resp = Response(response=result, status=200, mimetype="application/json")
     return resp
@@ -92,7 +92,7 @@ def compare():
     distance = face_compare.compare(img1, img2)
 
     logger.info("End getting comapre result: {}".format(distance))
-    result = jsonify({"distance": distance})
+    result = json.dumps({"distance": distance})
     resp = Response(response=result, status=200, mimetype="application/json")
     return resp
 

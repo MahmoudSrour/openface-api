@@ -39,7 +39,7 @@ class FaceCompare:
 
         distance = np.dot(d, d)
         self.logger.info("Distance:{}".format(distance))
-        return "{:0.3f}".format(distance)
+        return float("{:0.3f}".format(distance))
 
     def getRep(self, rgbImg):
         self.logger.info("Call getRep method")
