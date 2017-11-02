@@ -122,7 +122,7 @@ def recognize():
         filter = request.form['filter']
     logger.info("Filter: {}".format(filter))
 
-    page = 10
+    page = -1
     if 'page' in request.form:
         page = int(request.form['page'])
     logger.info("Page: {}".format(page))
