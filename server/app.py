@@ -1,16 +1,21 @@
+import sys
 import logging
 import datetime
 import config
 import json
+import base64
+import threading
 
 from flask import Flask, request, Response
 from flask_jsonpify import jsonify
+
 from werkzeug.exceptions import HTTPException
 
 from face_compare import FaceCompare
 
 from utils import image_helper as ih
-from gallery import users
+from gallery import users, adabas
+
 
 app = Flask(__name__)
 
@@ -60,7 +65,7 @@ def verify():
     distance = face_compare.compare(img1, img2)
     logger.info("End getting verify result: {}".format(distance))
 
-    result = json.dumps({'distance': distance, 'verified': distance > config.general['acceptance-compare-distance']})
+    result = json.dumps({'distance': distance, 'verified': distance < config.general['acceptance-compare-distance']})
     logger.info("Response result: {}".format(result))
     resp = Response(response=result, status=200, mimetype="application/json")
     return resp
@@ -92,9 +97,87 @@ def compare():
     distance = face_compare.compare(img1, img2)
 
     logger.info("End getting comapre result: {}".format(distance))
-    result = json.dumps({"distance": distance})
+    result = json.dumps({'distance': distance, 'matched': distance < config.general['acceptance-compare-distance']})
     resp = Response(response=result, status=200, mimetype="application/json")
     return resp
+
+
+@app.route('/recognize', methods=['GET', 'POST'])
+def recognize():
+    logger.info('Calling recognize api')
+
+    if 'image' not in request.files and 'image' not in request.form:
+        return "image param missing, image must be sent either posted file or public image path", 400
+
+    imageHelper = ih.ImageHelper(logger)
+    if 'image' in request.files:
+        logger.info('Image sent as post file')
+        img1 = imageHelper.get_rgb_img_from_req_file(request.files['image'])
+    else:
+        logger.info('Image sent as public path')
+        img1 = imageHelper.get_rgb_img_from_url_path(request.form['image'])
+
+    filter = None
+    if 'filter' in request.form:
+        filter = request.form['filter']
+    logger.info("Filter: {}".format(filter))
+
+    page = 10
+    if 'page' in request.form:
+        page = int(request.form['page'])
+    logger.info("Page: {}".format(page))
+    # connect to db and loop through all images to compare
+
+    gallery = adabas.Adabas(config, logger)
+    sqls = gallery.getJobs("profiles", filter, page)
+    print(sqls)
+    matches = []
+    threads = []
+    pcount = 0
+    for s in sqls:
+        t = threading.Thread(target=reco, args=(img1, s, matches, pcount))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    logger.info("data count: {}".format(len(matches)))
+    logger.info(matches)
+    logger.info("Count of processed rows: {}".format(pcount))
+
+    result = json.dumps(matches)
+    resp = Response(response=result, status=200, mimetype="application/json")
+    return resp
+
+
+def reco(img1, sql, arr, count):
+    logger.info('Reco method')
+    g = adabas.Adabas(config, logger)
+    count, data = g.getData(sql)
+
+    # Define face compare object
+    logger.info('Initiate face comapre & helper objects')
+    face_compare = FaceCompare(logger)
+    imageHelper = ih.ImageHelper(logger)
+
+    logger.info('Start scan records')
+    for row in data:
+        try:
+            logger.info("Start converting to image from base64")
+            img2 = imageHelper.get_rgb_img_from_base64(row[3])
+            logger.info('End converting  get_rgb_img_from_base64')
+            distance = face_compare.compare(img1, img2)
+            logger.info("End getting comapre result: {}".format(distance))
+            count = count + 1
+            if (distance < config.general['acceptance-compare-distance']):
+                arr.append({'cid': row[0], 'distance': distance})
+        except:
+            e = sys.exc_info()[0]
+            logger.error("Error while proccessing data: {}, exception: {}".format(row[0], e))
+
+    return arr
+
 
 @app.errorhandler(Exception)
 def handle_error(e):
