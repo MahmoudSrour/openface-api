@@ -47,3 +47,14 @@ class ImageHelper:
         self.logger.info("After cv2.cvtColor")
         self.logger.info("End get_rgb_img_from_base64 method")
         return rgbImg
+
+    def get_rgb_img_from_path(self, imgPath):
+        self.logger.info("End get_rgb_img_from_path method")
+        bgrImg = cv2.imread(imgPath)
+        if bgrImg is None:
+            raise Exception("Unable to load image: {}".format(imgPath))
+
+        rgbImg = cv2.cvtColor(bgrImg, cv2.COLOR_BGR2RGB)
+        self.logger.info("End cv2.cvtColor..")
+        self.logger.info("End End get_rgb_img_from_path method")
+        return rgbImg

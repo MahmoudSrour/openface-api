@@ -50,6 +50,25 @@ class Adabas:
 
         return sqls
 
+    def getSplitJobs(self, table, filter, split=-1):
+
+        sql = "select * from {}".format(table)
+        if filter is not None:
+            sql += ' where ' + filter + ' '
+        if(split != -1):
+            count = self.getCount(sql)
+
+            limit = int(math.ceil(count / float(split)))
+            sqls = []
+
+            for i in range(0, split):
+                sqls.append("{0} LIMIT {1}, {2}".format(sql, i * limit, limit))
+        else:
+            sqls = []
+            sqls.append(sql)
+
+        return sqls
+
     def getConnection(self):
         con = pymysql.connect(host=self.config.db['host'],
                               user=self.config.db['user'],
