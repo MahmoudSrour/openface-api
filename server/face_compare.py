@@ -127,9 +127,6 @@ class FaceCompare:
                 (le, clf) = pickle.load(f)
             else:
                 (le, clf) = pickle.load(f, encoding='latin1')
-
-        #for img in args.imgs:
-            #print("\n=== {} ===".format(img))
         reps = self.getRep2(rgbImg, multiple)
         results = []
         if len(reps) > 1:

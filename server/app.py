@@ -15,6 +15,9 @@ from multiprocessing import Process, Value, Manager
 
 from flask import Flask, request, Response
 from flask_jsonpify import jsonify
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 
 from werkzeug.exceptions import HTTPException
 
@@ -265,9 +268,9 @@ def reco2(img1, sql, arr, pcount):
     return arr
 
 
-@app.route('/robort/recognize', methods=['GET', 'POST'])
+@app.route('/robot/recognize', methods=['GET', 'POST'])
 def robot_recognize():
-    method = "robort_recognize"
+    method = "robot_recognize"
     logger.info("Calling {} api".format(method))
 
     if 'image' not in request.files and 'image' not in request.form:
@@ -281,46 +284,12 @@ def robot_recognize():
         logger.info('Image sent as public path')
         img1 = imageHelper.get_rgb_img_from_url_path(request.form['image'])
 
-    '''
-    moh_ben_rashed_img = imageHelper.get_rgb_img_from_path("/src/images/mohammad_ben_rashed.jpg")
-    sultan_aljaber_img = imageHelper.get_rgb_img_from_path("/src/images/sultan_ajaber.jpg")
-
-    logger.info('Initiate face comapre object')
-    face_compare = FaceCompare(logger)
-
-    bbs = face_compare.getFacesBounding(img1)
-    moh_rep = face_compare.getRep(moh_ben_rashed_img)
-    sultan_rep = face_compare.getRep(sultan_aljaber_img)
-
-    reps = []
-    results = []
-    for bb in bbs:
-        reps.append(face_compare.getRep(img1, bb))
-
-    for rep in reps:
-        d = rep - moh_rep
-        distance = np.dot(d, d)
-        if distance < config.general['acceptance-compare-distance']:
-            results.append({"name": "Mohammad Ben Rashed", "location": bb})
-    for rep in reps:
-        d = rep - sultan_rep
-        distance = np.dot(d, d)
-        if distance < config.general['acceptance-compare-distance']:
-            results.append({"name": "Dr. Sultan Aljaber", "location": bb})
-
-    result = json.dumps(results)
-    resp = Response(response=result, status=200, mimetype="application/json")
-    return resp
-    '''
-
     face_compare = FaceCompare(logger)
     results = face_compare.infer(img1, True)
 
     result = json.dumps(results)
     resp = Response(response=result, status=200, mimetype="application/json")
     return resp
-
-
 
 @app.errorhandler(Exception)
 def handle_error(e):
@@ -336,4 +305,7 @@ def handle_error(e):
 
 if __name__ == '__main__':
     logger.info('start listening on: http://%s:%d ...' % (host, port))
-    app.run(host=host, port=port)
+    http_server = HTTPServer(WSGIContainer(app))
+    http_server.listen(port)
+    IOLoop.instance().start()
+    #app.run(host=host, port=port)
